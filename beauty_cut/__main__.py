@@ -7,6 +7,7 @@ from pathlib import Path
 from beauty_cut.integrity import ManifestError, verify_manifest
 from beauty_cut.probe import ProbeError, probe_videos
 from beauty_cut.detect import DetectionError, DEFAULT_THRESHOLD, detect_videos
+from beauty_cut.preview import PreviewError, preview_videos
 
 
 def main(argv=None) -> int:
@@ -28,6 +29,13 @@ def main(argv=None) -> int:
                         help="Seconds per probe/analysis process (default: 600)")
     detect.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
                         help="Change sensitivity in (0,100]; lower detects more cuts (default: 5)")
+    preview = commands.add_parser("preview", help="Generate local shot images and offline review report")
+    preview.add_argument("files", nargs="+", type=Path)
+    preview.add_argument("--output-dir", type=Path, required=True)
+    preview.add_argument("--ffmpeg", default="ffmpeg")
+    preview.add_argument("--ffprobe", default="ffprobe")
+    preview.add_argument("--timeout", type=float, default=600)
+    preview.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     args = parser.parse_args(argv)
 
     try:
@@ -36,11 +44,15 @@ def main(argv=None) -> int:
         elif args.command == "probe":
             report = probe_videos(args.files, ffmpeg=args.ffmpeg,
                                   ffprobe=args.ffprobe, timeout=args.timeout)
-        else:
+        elif args.command == "detect":
             report = detect_videos(args.files, ffmpeg=args.ffmpeg,
                                    ffprobe=args.ffprobe, timeout=args.timeout,
                                    threshold=args.threshold)
-    except (ManifestError, ProbeError, DetectionError) as exc:
+        else:
+            report = preview_videos(args.files, output_dir=args.output_dir, ffmpeg=args.ffmpeg,
+                                    ffprobe=args.ffprobe, timeout=args.timeout,
+                                    threshold=args.threshold)
+    except (ManifestError, ProbeError, DetectionError, PreviewError) as exc:
         print(json.dumps({"schema_version": 1, "error": str(exc)}, ensure_ascii=True))
         return 2
     print(json.dumps(report, indent=2, ensure_ascii=True))

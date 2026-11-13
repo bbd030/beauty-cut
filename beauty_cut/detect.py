@@ -218,7 +218,7 @@ def _shots(frames, boundaries):
 
 
 def detect_videos(files, *, ffmpeg="ffmpeg", ffprobe="ffprobe", timeout=600,
-                  threshold=DEFAULT_THRESHOLD):
+                  threshold=DEFAULT_THRESHOLD, _on_result=None):
     """Detect the first non-cover video stream; failures never emit partial shots."""
     files = list(files)
     if not files:
@@ -247,6 +247,7 @@ def detect_videos(files, *, ffmpeg="ffmpeg", ffprobe="ffprobe", timeout=600,
         raise DetectionError(str(exc)) from exc
     results = []
     for filename in files:
+        frames = None
         item = {"file": str(filename), "status": "failed", "metadata": None,
                 "analysis": None, "shots": [], "warnings": [], "error": None}
         stage = "input"
@@ -286,6 +287,10 @@ def detect_videos(files, *, ffmpeg="ffmpeg", ffprobe="ffprobe", timeout=600,
             item["error"] = f"{stage}: timed out after {timeout:g} seconds"
         except (OSError, ValueError, RuntimeError) as exc:
             item["error"] = f"{stage}: {exc}"
+        # Internal consumer receives exact timestamps while this video's frame
+        # records are alive. Existing CLI/report output is unchanged.
+        if _on_result is not None:
+            _on_result(item, frames if item["status"] == "passed" else None)
         results.append(item)
     passed = sum(item["status"] == "passed" for item in results)
     return {"schema_version": 1, "tools": versions,

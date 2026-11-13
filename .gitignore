@@ -1,0 +1,31 @@
+# Recruitment materials and derived media stay local.
+/aios-shot-materials/
+/NOTES.md
+/.local/
+/outputs/
+/reports/
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Local environments and secrets.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+Thumbs.db

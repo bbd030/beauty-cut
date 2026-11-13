@@ -2,15 +2,39 @@
 
 把美妆成品短视频拆分为带起止时间和预览图的镜头清单，为后续打标、检索和重组准备输入。
 
-当前从原始基线开始逐功能实现，尚未提供镜头切分程序。开发规则见 [AGENTS.md](AGENTS.md)，原始基线见 [docs/BASELINE.md](docs/BASELINE.md)，评测记录见 [docs/EVALUATIONS.md](docs/EVALUATIONS.md)。
+当前已实现第一个功能：批量素材完整性校验。镜头切分尚未实现。开发规则见 [AGENTS.md](AGENTS.md)，原始基线见 [docs/BASELINE.md](docs/BASELINE.md)，评测记录见 [docs/EVALUATIONS.md](docs/EVALUATIONS.md)。
 
 原始题目和三条测试视频仅在本地 `aios-shot-materials/` 中保存，不随公开仓库分发。首次使用者需自行取得获准使用的素材。
 
 ## 实现顺序
 
-1. 批量素材完整性校验，记录逐项失败并继续。
+1. 已实现：批量素材完整性校验，记录逐项失败并继续。
 2. 视频属性探测和解码环境验证。
 3. 镜头边界检测及起止时间输出。
 4. 镜头预览图和实际切分检查。
 
-每一步单独验证、提交和推送；该列表是计划，不代表已完成功能。
+每一步单独验证、提交和推送；其余条目为后续计划。
+
+## 运行素材校验
+
+需要 Python 3.11 或更新版本；当前仅使用标准库，无第三方依赖需要安装。从项目根目录运行：
+
+```sh
+python -m beauty_cut verify --manifest aios-shot-materials/SHA256SUMS.json
+```
+
+清单格式为 JSON 对象：键为相对于清单目录的文件路径，值为 64 位十六进制 SHA-256。支持 UTF-8（含 BOM）、中文与子目录；不读取清单目录之外的文件。原始清单包含题目说明和三条视频，全部检查，不局限于 MP4。
+
+命令向标准输出写入 JSON，含 `schema_version`、`summary` 和逐文件 `results`。每项包含 `file`、`status`、`expected_sha256`、`actual_sha256` 和 `error`。成功时 `error` 为 null；未计算哈希时 `actual_sha256` 为 null。清单整体无效时返回含 `schema_version` 和 `error` 的 JSON。
+
+退出码：`0` 全部一致；`1` 至少一个条目失败（仍检查其余条目）；`2` 清单不可读、格式无效或命令行用法错误。用法错误由 argparse 输出到标准错误。若需保存报告，可将标准输出重定向到本地文件。
+
+此命令只校验文件字节完整性，不验证视频能否解码，也不检测镜头。
+
+## 测试
+
+```sh
+python -m unittest discover -s tests -v
+```
+
+测试在临时目录中生成合成文件，不需要测试素材、FFmpeg、网络或云服务。最新验证记录见 [docs/VALIDATION.md](docs/VALIDATION.md)。
